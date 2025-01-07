@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pytest
+pydantic
+langchain
+langchain-openai
+pandas
+fastapi[standard]
