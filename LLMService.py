@@ -100,7 +100,7 @@ def summarizeProject(fileStructureString: str, fileStructureSummary: str,  folde
                       - The name of the project
                       - What languages/packages/frameworks the project uses
                       - What the project does (or what different parts do)
-                      - How it works
+                      - How it is structured
                       - Any external systems that are implied to exist or interact with the project"""),
         
         HumanMessage('project directory structure :\n\n'+fileStructureString),

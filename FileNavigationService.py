@@ -10,17 +10,16 @@ class FileNavService:
         self.startPath = projectPath
         self.dirStructureString = ""
         self.dirStructureSummary = ""
-        self.fileSummaryDict = {}
-        self.folderSummaryDict = {}
+        self.fileSummaryDict: dict[str,str] = {}
+        self.folderSummaryDict: dict[str,str] = {}
         self.projectSummary = ""
 
 
     def get_file_summaries(self, dirPath:str):
         keysToGet: list[str] = []
         fileSummaries: list[str] = []
-
         for summaryKey in self.fileSummaryDict.keys():
-            if os.path.dirname(summaryKey) == dirPath:
+            if os.path.dirname(summaryKey).replace("\\", "/").rstrip("/") == dirPath.rstrip("/"):
                 keysToGet.append(summaryKey)
         
         for key in keysToGet:
@@ -31,9 +30,8 @@ class FileNavService:
     def get_folder_summaries(self, dirPath:str):
         keysToGet: list[str] = []
         folderSummaries: list[str] = []
-
         for summaryKey in self.folderSummaryDict.keys():
-            if os.path.dirname(summaryKey) == dirPath:
+            if os.path.dirname(summaryKey).replace("\\", "/").rstrip("/") == dirPath.rstrip("/"):
                 keysToGet.append(summaryKey)
         
         for key in keysToGet:
@@ -41,7 +39,15 @@ class FileNavService:
         
         return folderSummaries
 
-        
+    def get_top_5_folder_summaries(self):
+        top5 = []
+        keysList = sorted(self.folderSummaryDict)
+        for i in range(5):
+            if(i >= len(keysList)):
+                break
+            top5.append(keysList[i].replace("\\", "/") + ": " +self.folderSummaryDict[keysList[i]].replace("\\", "/"))
+        return top5
+
     def load_summaries(self, id, projectPath, dirStructureString, dirStructureSummary, fileSummaryDict, folderSummaryDict, projectSummary):
         self.id = id
         self.startPath = projectPath
@@ -94,8 +100,8 @@ class FileNavService:
                 print("Summarizing file: " + os.path.join(root, file))
                 with open(os.path.join(root, file), 'r') as f:
                     fileContent = f.read()
-                    summaryString = LLMService.summarizeFile(file, fileContent, self.dirStructureString + '\n' + self.dirStructureSummary)
-                    self.fileSummaryDict[os.path.join(root, file)] = summaryString
+                    summaryString = LLMService.summarizeFile(file, fileContent, self.dirStructureString + '\n' + self.dirStructureSummary).replace("\\", "/")
+                    self.fileSummaryDict[os.path.join(root, file).replace("\\", "/")] = summaryString
 
         self.write_currentdata()
         return self.fileSummaryDict
@@ -106,34 +112,35 @@ class FileNavService:
 
 
     def generate_directory_summary(self,  startPath):
+        safeStartpath = startPath.replace("\\", "/")
         for root, dirs, files in os.walk(startPath):
             if FileNavService.IsIgnorablePath(root):
                 continue
             
-            dirContentSummary = "Summarizing directory: "+ startPath
+            dirContentSummary = "Summarizing directory: "+ safeStartpath
             for dir in dirs:
                 if FileNavService.IsIgnorablePath(dir):
                     continue
                 if os.path.join(root, dir) in self.folderSummaryDict.keys():
-                    dirContentSummary = dirContentSummary + '\n'+ dir + ' summary: '+ self.folderSummaryDict[os.path.join(root, dir)]
+                    dirContentSummary = dirContentSummary + '\n'+ dir + ' summary: '+ self.folderSummaryDict[os.path.join(root, dir).replace("\\", "/")]
                 else:
                     self.generate_directory_summary(os.path.join(root, dir))
-                    if os.path.join(root, dir) in self.folderSummaryDict.keys():
-                        dirContentSummary = dirContentSummary + '\n'+ dir + ' summary: '+ self.folderSummaryDict[os.path.join(root, dir)]
+                    if os.path.join(root, dir).replace("\\", "/") in self.folderSummaryDict.keys():
+                        dirContentSummary = dirContentSummary + '\n'+ dir + ' summary: '+ self.folderSummaryDict[os.path.join(root, dir).replace("\\", "/")]
                     else:
                         dirContentSummary = dirContentSummary + '\n'+ dir + ' summary: '+ "No summary available"
 
             for file in files:
                 if FileNavService.IsIgnorablePath(file) or not FileNavService.IsReadableFileExtension(file):
                     continue
-                dirContentSummary = dirContentSummary + '\n' + file + ' summary: ' + self.fileSummaryDict[os.path.join(root, file)]
+                dirContentSummary = dirContentSummary + '\n' + file + ' summary: ' + self.fileSummaryDict[os.path.join(root, file).replace("\\", "/")]
 
-            if startPath in self.folderSummaryDict.keys():
+            if safeStartpath in self.folderSummaryDict.keys():
                 continue
 
             print("Summarizing directory: " + startPath)
-            directorySummary = LLMService.summarizeDirectory(startPath, dirContentSummary, self.dirStructureString + "\n\n" + self.dirStructureSummary)
-            self.folderSummaryDict[startPath] = directorySummary
+            directorySummary = LLMService.summarizeDirectory(safeStartpath, dirContentSummary, self.dirStructureString + "\n\n" + self.dirStructureSummary).replace("\\", "/")
+            self.folderSummaryDict[safeStartpath] = directorySummary
 
         self.write_currentdata()
         return self.folderSummaryDict
@@ -146,7 +153,7 @@ class FileNavService:
 
     def write_currentdata(self):
         stringifiedData = json.dumps(self.__dict__)
-        with open(f'currentData-{self.id}.txt', 'w') as f:
+        with open(f'C:\\Users\\brandon.nesiba\\source\\repos\\codebase results\\currentData-{self.id}.txt', 'w') as f:
             f.write(stringifiedData)
             # f.write('{')
             # f.write('id: ' + "\"" + self.id + "\"" + '\n')

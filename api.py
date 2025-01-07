@@ -148,12 +148,20 @@ def new_session(startingPath: str = Body()):
     fileNav.generate_summaries()
     return CodeReaderChatService.GetSessionId(fileNav)
 
-@app.post("/codeReader/ImportSession")
-def import_session(fileNavString: str = Body()):
-    importFileNav = json.loads(fileNavString)
+# @app.post("/codeReader/ImportSession")
+# def import_session(fileNavString: str = Body()):
+#     importFileNav = json.loads(fileNavString)
+#     session = FileNavService("")
+#     session.load_summaries(importFileNav["id"], importFileNav["startPath"], importFileNav["dirStructureString"], importFileNav["dirStructureSummary"], importFileNav["fileSummaryDict"], importFileNav["folderSummaryDict"], importFileNav["projectSummary"])
+#     return CodeReaderChatService.GetSessionId(session)
+
+@app.post("/codeReader/ImportSessionObj")
+def import_session(fileNav = Body()):
+    importFileNav = fileNav
     session = FileNavService("")
     session.load_summaries(importFileNav["id"], importFileNav["startPath"], importFileNav["dirStructureString"], importFileNav["dirStructureSummary"], importFileNav["fileSummaryDict"], importFileNav["folderSummaryDict"], importFileNav["projectSummary"])
     return CodeReaderChatService.GetSessionId(session)
+
 
 # @app.get("/commSearch/details/{item_id}")
 # def read_item(item_id):

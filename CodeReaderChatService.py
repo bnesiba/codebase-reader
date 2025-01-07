@@ -49,7 +49,11 @@ class CodeSummaryToolContainer():
         self.referencedIds.clear();
 
     def _getFileSummaryFolders(self):
-        return self.projectSummaryData.folderSummaryDict.keys();
+        keysList: list[str] = [];
+        for key in self.projectSummaryData.folderSummaryDict.keys():
+            keysList.append(key);
+        
+        return keysList;
 
     def _getSummariesForFolder(self, folderPath):
         folderSummaries =  self.projectSummaryData.get_folder_summaries(folderPath);
@@ -58,7 +62,7 @@ class CodeSummaryToolContainer():
 
     def GetFolderDetailsToolDef(self):
         class GetSummariesByFolder(BaseModel):
-            """gets the summaries for the contents of a specified folder. Use this if you need more specific information on files in that folder. """
+            f"""gets the summaries for the contents of a specified folder. Use this if you need more specific information on files in that folder. Must be one of: {str(self._getFileSummaryFolders())}"""
             folderPath: Literal[tuple(self._getFileSummaryFolders())] = Field(..., description="The path of the folder to get the detailed summaries for.");
             class Config:
                 extra = "forbid" #required for strict = true
@@ -67,12 +71,13 @@ class CodeSummaryToolContainer():
 
     def GetFolderDetailsAgentTool(self):
         class GetSummariesByFolderTool(BaseTool):
-            name: str = "GetSummariesByFolder"
-            description: str = "A tool to get detailed information about a specific communication using the DocumentID from the metadata. Do not run the tool without running GetCommMetadata first."
+            name: str = "GetSummariesByFolder" 
+            description: str = f"A tool to get the detailed summaries for each of the contents of a specified folder. Must be one of: {str(self._getFileSummaryFolders())}"
 
             def _run(self2, folderPath: Literal[tuple(self._getFileSummaryFolders())]) -> str:
-                print(folderPath);
-                summaryData = self._getSummariesForFolder(folderPath);
+                print(f"Getting summaries for folder: {folderPath}");
+                print("data: "+ str(self.projectSummaryData.folderSummaryDict.keys()));
+                summaryData = self._getSummariesForFolder(folderPath)
                 # self._addReferencedId(idVal, communication[0].metadata["ConversationType"], communication[0].metadata["CommDate"]);
 
                 return f"GetSummariesByFolder({folderPath}) Result:\n {str(summaryData)}."
@@ -82,6 +87,33 @@ class CodeSummaryToolContainer():
         
         return GetSummariesByFolderTool();
 
+    def GetFileContentToolDef(self):
+        class GetFileContent(BaseModel):
+            f"""gets the summaries for the contents of a specified folder. Use this if you need more specific information on files in that folder. Must be one of: {str(self._getFileSummaryFolders())}"""
+            folderPath: Literal[tuple(self._getFileSummaryFolders())] = Field(..., description="The path of the folder to get the detailed summaries for.");
+            class Config:
+                extra = "forbid" #required for strict = true
+
+        return GetFileContent;
+
+    def GetFileContentAgentTool(self):
+        class GetFileContentTool(BaseTool):
+            name: str = "GetFileContent" 
+            description: str = f"A tool to get the detailed summaries for each of the contents of a specified folder. Must be one of: {str(self._getFileSummaryFolders())}"
+
+            def _run(self2, folderPath: Literal[tuple(self._getFileSummaryFolders())]) -> str:
+                print(f"Getting summaries for folder: {folderPath}");
+                print("data: "+ str(self.projectSummaryData.folderSummaryDict.keys()));
+                summaryData = self._getSummariesForFolder(folderPath)
+                # self._addReferencedId(idVal, communication[0].metadata["ConversationType"], communication[0].metadata["CommDate"]);
+
+                return f"GetSummariesByFolder({folderPath}) Result:\n {str(summaryData)}."
+
+            def _arun(self2, folderPath) -> str:
+                raise NotImplementedError("Async execution not supported yet.")
+        
+        return GetFileContentTool();
+
 ##***************** EndTool and State Setup *****************##
 
 
@@ -90,6 +122,7 @@ class CodeSummaryToolContainer():
 # - Uses tools to search communications data. 
 def RunCodeSearchBot(userInput, sessionId):
     
+    # print(str(sessionDict));
     sessionData = sessionDict[sessionId];
     UpdateSessionIdle(sessionId);
     inputData = userInput;
@@ -99,20 +132,29 @@ def RunCodeSearchBot(userInput, sessionId):
     toolDefList = [codeSummaryToolManagement.GetFolderDetailsToolDef()]; #should also have tools for getting more folder summaries and getting specific files
     agentToolsList = [codeSummaryToolManagement.GetFolderDetailsAgentTool()]; #unfortunate that these can't be the same types
 
-    tooledLLM = llm.bind_tools(toolDefList);
+    tooledLLM = llm.bind_tools(toolDefList, strict= True);
+
+    top5Dir = str(sessionFileNavDict[sessionId].get_top_5_folder_summaries())
+    infoString = f"""Here is the full file structure of the project: \n{sessionFileNavDict[sessionId].dirStructureString}
+    These are summmaries of some of the higher-level folders in the project: \n{top5Dir}
+    Here is the overall summary of the project you are working on: \n{sessionFileNavDict[sessionId].projectSummary}
+
+"""
+    
+    folderToolInstructionString = f"GetSummariesByFolder is a tool that provides detailed summaries of the contents of a specified folder. Input path must be one of: {str(codeSummaryToolManagement._getFileSummaryFolders())}";
 
     promptTemplate = ChatPromptTemplate.from_messages(
         [
-            ("system", f"""You are a helpful code assistant named Helpy (don't say your name unless directly asked). You are here to help the user better understand the project {sessionFileNavDict[sessionId].startPath}.
-             **You are a code assistant. You have tools that give info about the code for the current project. Use those tools to provide consise **SHORT** **As SHORT AS POSSIBLE** accurate answers to user prompts."""),
+            ("system", """You are a helpful code assistant named Helpy (don't say your name unless directly asked). You are here to help the user better understand the project.
+             **You are a code assistant. You have tools that give info about the code for the current project. Use those tools to provide consise **SHORT** **As SHORT AS POSSIBLE** accurate answers to user prompts.
+             """ + folderToolInstructionString),
             ("placeholder", "{chat_history}"),
-            ("human", f"Here is the full file structure of the project: \n{sessionFileNavDict[sessionId].dirStructureString}"),
-            ("human", f"These are summmaries of the folders in the project: \n{str(sessionFileNavDict[sessionId].folderSummaryDict)}"),#TODO: limit to like top 5 or something
-            ("human", f"Here is the overall summary of the project you are working on: \n{sessionFileNavDict[sessionId].projectSummary}"),
-            ("human", " If you need additional data about particular files, please run the GetFolderDetails tool to resolve the user prompt **short and consisely**: {input}"),#("human", "{input}"),use simpler one if using display tool (although it also works alright on its own)
+            ("human", infoString + "If you need additional data about particular files, please run the GetSummariesByFolder tool to resolve the user prompt **short and consisely**: {input}"),#("human", "{input}"),use simpler one if using display tool (although it also works alright on its own)
             ("placeholder", "{agent_scratchpad}"),
         ]
     )
+
+        
     agent = create_tool_calling_agent(tooledLLM, toolDefList, promptTemplate); #this might not need to be a bound llm. Crazy that the tools need to be in so many places.
     executor = AgentExecutor(agent=agent, tools=agentToolsList, verbose=True);
 
@@ -124,6 +166,7 @@ def RunCodeSearchBot(userInput, sessionId):
         print("NO SESSION DATA");
     
     response = executor.invoke(inputObject);
+    print(response)
     sessionDict[sessionId].append({"role": "user", "content": inputData});
     sessionDict[sessionId].append({"role": "assistant", "content": response["output"]});
     return {"response": response, "sessionId": sessionId, "references": codeSummaryToolManagement.GetReferencedIds()};
