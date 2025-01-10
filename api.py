@@ -181,6 +181,38 @@ def init_search(startingPath: str = Body()):
 @app.post("/codeReader/init/{sessionId}")
 def init_search_session(sessionId,startingPath: str = Body()):
     return CodeReaderChatService.RunCodeSearchBot("Welcome the user and provide a short overview of the languages/tools used in the project and what it does.", sessionId)
+
+@app.post("/codeReader/init-pregen/{projectName}")
+def init_search_pregen(projectName):
+    if(projectName == "LoanSummaryAPI"):
+        with open("C:\\Users\\brandon.nesiba\\source\\repos\\codebase results\\loanSummaryApi-summarized.txt", "r") as f:
+            jf = json.load(f)
+            fileNav = FileNavService("")
+            fileNav.load_summaries(jf["id"], jf["startPath"], jf["dirStructureString"], jf["dirStructureSummary"], jf["fileSummaryDict"], jf["folderSummaryDict"], jf["projectSummary"])
+            sessionId =  CodeReaderChatService.GetSessionId(fileNav)
+
+    if(projectName == "WorkspacesUI"):
+        with open("C:\\Users\\brandon.nesiba\\source\\repos\\codebase results\\workspacesUI-summarized.txt", "r") as f:
+            jf = json.load(f)
+            fileNav = FileNavService("")
+            fileNav.load_summaries(jf["id"], jf["startPath"], jf["dirStructureString"], jf["dirStructureSummary"], jf["fileSummaryDict"], jf["folderSummaryDict"], jf["projectSummary"])
+            sessionId =  CodeReaderChatService.GetSessionId(fileNav)
+    
+    if(projectName == "VULoanReader"):
+        with open("C:\\Users\\brandon.nesiba\\source\\repos\\codebase results\\vuLoanReader-summarized.txt", "r") as f:
+            jf = json.load(f)
+            fileNav = FileNavService("")
+            fileNav.load_summaries(jf["id"], jf["startPath"], jf["dirStructureString"], jf["dirStructureSummary"], jf["fileSummaryDict"], jf["folderSummaryDict"], jf["projectSummary"])
+            sessionId =  CodeReaderChatService.GetSessionId(fileNav)
+
+    if(projectName == "Codebase-Reader"):
+        with open("C:\\Users\\brandon.nesiba\\source\\repos\\codebase results\\codereader-summarized.txt", "r") as f:
+            jf = json.load(f)
+            fileNav = FileNavService("")
+            fileNav.load_summaries(jf["id"], jf["startPath"], jf["dirStructureString"], jf["dirStructureSummary"], jf["fileSummaryDict"], jf["folderSummaryDict"], jf["projectSummary"])
+            sessionId =  CodeReaderChatService.GetSessionId(fileNav)
+
+    return CodeReaderChatService.RunCodeSearchBot("Welcome the user and provide a short overview of the languages/tools used in the project and what it does.", sessionId)
     
 
 ##***************** End FastAPI Setup *****************##

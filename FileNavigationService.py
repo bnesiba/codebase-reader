@@ -98,10 +98,13 @@ class FileNavService:
                 if FileNavService.IsIgnorablePath(file) or not FileNavService.IsReadableFileExtension(file):
                     continue
                 print("Summarizing file: " + os.path.join(root, file))
-                with open(os.path.join(root, file), 'r') as f:
-                    fileContent = f.read()
-                    summaryString = LLMService.summarizeFile(file, fileContent, self.dirStructureString + '\n' + self.dirStructureSummary).replace("\\", "/")
-                    self.fileSummaryDict[os.path.join(root, file).replace("\\", "/")] = summaryString
+                try:
+                    with open(os.path.join(root, file), 'r') as f:
+                        fileContent = f.read()
+                        summaryString = LLMService.summarizeFile(file, fileContent, self.dirStructureString + '\n' + self.dirStructureSummary).replace("\\", "/")
+                        self.fileSummaryDict[os.path.join(root, file).replace("\\", "/")] = summaryString
+                except:
+                    self.fileSummaryDict[os.path.join(root, file).replace("\\", "/")] = "Could not read file"
 
         self.write_currentdata()
         return self.fileSummaryDict
@@ -235,6 +238,8 @@ class FileNavService:
         if "all.css" in string:
             return True
         if "all.min.css" in string:
+            return True
+        if "duotone." in string:
             return True
         
         return False

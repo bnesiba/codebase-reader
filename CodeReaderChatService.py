@@ -179,7 +179,7 @@ def RunCodeSearchBot(userInput, sessionId):
     print(response)
     sessionDict[sessionId].append({"role": "user", "content": inputData});
     sessionDict[sessionId].append({"role": "assistant", "content": response["output"]});
-    return {"response": response, "sessionId": sessionId, "references": codeSummaryToolManagement.GetReferencedIds()};
+    return {"message": response["output"], "sessionId": sessionId, "references": codeSummaryToolManagement.GetReferencedIds()};
 
 ##***************** End CHATBOT RUN DEFINITION *****************##
 from datetime import datetime
