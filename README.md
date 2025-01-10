@@ -1,5 +1,5 @@
 # codebase-reader
-hackathon project to interrogate codebases   
+hackathon project to interrogate codebases - Uses Python + LangChain + FastAPI   
 Built for a 2 day internal ai hackathon with the topic 'developer productivity'. 
 
 
